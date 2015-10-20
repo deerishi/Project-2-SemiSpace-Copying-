@@ -37,6 +37,9 @@ extern struct GGGGC_Pool *ggggc_curPool;
 /* descriptor descriptors */
 extern struct GGGGC_Descriptor *ggggc_descriptorDescriptors[GGGGC_WORDS_PER_POOL/GGGGC_BITS_PER_WORD+sizeof(struct GGGGC_Descriptor)];
 
+/* The from space and to space poolList */
+extern struct GGGGC_Pool *fromSpacePoolList,*fromSpaceCurPool,*toSpacePoolList,*toSpaceCurPool; 
+
 #ifdef __cplusplus
 }
 #endif
