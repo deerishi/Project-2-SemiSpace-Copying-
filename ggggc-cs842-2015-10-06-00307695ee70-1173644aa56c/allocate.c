@@ -154,13 +154,88 @@ void ggggc_freeGeneration(struct GGGGC_Pool *pool)
     freePoolsTail = pool;
 }
 
-/* allocate an object */
+
+
+i
+
+
+
+
+
+
+
+
+/* allocate an object  By SemSpace Copying*/
+fromSpacePoolList=NULL;fromSpaceCurPool=NULL;toSpacePoolList=NULL;toSpaceCurPool=NULL; 
 void *ggggc_malloc(struct GGGGC_Descriptor *descriptor)
 {
     /* FILLME */
+    ggc_size_t i;
+    struct GGGGC_Pool *pool;
+    //Allocate 10 from pool and to pools in the beginning
+    if(fromSpacePoolList==NULL and toSpacePoolList==NULL)
+    {
+    	pool=fromSpacePoolList;
+    	for( i=0;i<30;i++)
+    	{
+    		pool=newPool(1);
+    		pool->next=NULL;
+    		pool->survivors = 0;
+    		pool->start[0]=0;
+    		if(ggggc_poolList==NULL)
+    		{
+				fromSpacePoolList=fromSpaceCur=pool;
+			}
+			pool=pool->next;
+		}
+    	pool=toSpacePoolList;
+    	for( i=0;i<30;i++)
+    	{
+    		pool=newPool(1);
+    		pool->next=NULL;
+    		pool->survivors = 0;
+    		pool->start[0]=0;
+    		if(ggggc_poolList==NULL)
+    		{
+				toSpacePoolList=toSpaceCurPool=pool;
+			}
+			pool=pool->next;
+		}
+    }
+    GGGGC_Header *obj=NULL;
+    //Now allocate in the FromSpace if pool is available
+    pool=fromSpaceCur; 
+methodOneForAllocation:
+    if(pool!=NULL)
+    {
+       	if((pool->end - pool->free) >= descriptor->size)
+    	{
+    		obj=(GGGGC_Header *)pool->free;
+    		obj->descriptor__ptr=descriptor;
+    		obj->user__ptr=NULL; //Will be used later for copying references
+    		pool->free=pool->free + descriptor->size;
+    	}
+    	else
+    	{
+    		pool=pool->next;
+    		goto methodOneForAllocation;
+    	}
+    }
+    else
+    {
+    	
     GGC_YIELD();
     return GC_MALLOC(descriptor->size * sizeof(void*));
 }
+
+
+
+
+
+
+
+
+
 
 struct GGGGC_Array {
     struct GGGGC_Header header;
