@@ -43,7 +43,7 @@
 #endif
 
 /* REMOVE THIS FOR SUBMISSION! */
-#include <gc.h>
+/*#include <gc.h>*/
 /* --- */
 
 #include "ggggc/gc.h"
@@ -145,9 +145,12 @@ void ggggc_expandGeneration(struct GGGGC_Pool *pool)
 void ggggc_freeGeneration(struct GGGGC_Pool *pool)
 {
     if (!pool) return;
-    if (freePoolsHead) {
+    if (freePoolsHead) 
+    {
         freePoolsTail->next = pool;
-    } else {
+    } 
+    else 
+    {
         freePoolsHead = pool;
     }
     while (pool->next) pool = pool->next;
@@ -155,8 +158,6 @@ void ggggc_freeGeneration(struct GGGGC_Pool *pool)
 }
 
 
-
-i
 
 
 
@@ -166,14 +167,18 @@ i
 
 
 /* allocate an object  By SemSpace Copying*/
-fromSpacePoolList=NULL;fromSpaceCurPool=NULL;toSpacePoolList=NULL;toSpaceCurPool=NULL; 
+struct GGGGC_Pool *fromSpacePoolList=NULL,*fromSpaceCurPool=NULL,*toSpacePoolList=NULL,*toSpaceCurPool=NULL; 
 void *ggggc_malloc(struct GGGGC_Descriptor *descriptor)
 {
+
+	//printf("in malloc malloc  descriptor is %zx and size is %zx\n",descriptor,descriptor->size);
+
+	
     /* FILLME */
     ggc_size_t i;
     struct GGGGC_Pool *pool;
     //Allocate 10 from pool and to pools in the beginning
-    if(fromSpacePoolList==NULL and toSpacePoolList==NULL)
+    if(fromSpacePoolList==NULL && toSpacePoolList==NULL)
     {
     	pool=fromSpacePoolList;
     	for( i=0;i<30;i++)
@@ -181,10 +186,9 @@ void *ggggc_malloc(struct GGGGC_Descriptor *descriptor)
     		pool=newPool(1);
     		pool->next=NULL;
     		pool->survivors = 0;
-    		pool->start[0]=0;
-    		if(ggggc_poolList==NULL)
+    		if(fromSpacePoolList==NULL)
     		{
-				fromSpacePoolList=fromSpaceCur=pool;
+				fromSpacePoolList=fromSpaceCurPool=pool;
 			}
 			pool=pool->next;
 		}
@@ -194,38 +198,69 @@ void *ggggc_malloc(struct GGGGC_Descriptor *descriptor)
     		pool=newPool(1);
     		pool->next=NULL;
     		pool->survivors = 0;
-    		pool->start[0]=0;
-    		if(ggggc_poolList==NULL)
+    		if(toSpacePoolList==NULL)
     		{
 				toSpacePoolList=toSpaceCurPool=pool;
 			}
 			pool=pool->next;
 		}
     }
-    GGGGC_Header *obj=NULL;
+    struct GGGGC_Header *obj=NULL;
     //Now allocate in the FromSpace if pool is available
-    pool=fromSpaceCur; 
+    pool=fromSpaceCurPool; 
+    ggc_size_t counter=0;
 methodOneForAllocation:
     if(pool!=NULL)
     {
        	if((pool->end - pool->free) >= descriptor->size)
     	{
-    		obj=(GGGGC_Header *)pool->free;
+    		obj=(struct GGGGC_Header *)pool->free;
     		obj->descriptor__ptr=descriptor;
-    		obj->user__ptr=NULL; //Will be used later for copying references
+    		obj->forward=NULL; //Will be used later for copying references
     		pool->free=pool->free + descriptor->size;
+    		memset(obj+1,0,descriptor->size *sizeof(ggc_size_t) -sizeof(struct GGGGC_Header *));
+    		return obj;
     	}
     	else
     	{
     		pool=pool->next;
     		goto methodOneForAllocation;
     	}
+    	counter++;
     }
     else
     {
-    	
-    GGC_YIELD();
-    return GC_MALLOC(descriptor->size * sizeof(void*));
+    	/*Significance of counter comes in the fact that we have used malloc twice and even after tring yield we cound not allocate */
+    	if(counter<2) 
+    	{
+			GGC_YIELD();
+		}
+		else
+		{
+			for( i=0;i<1;i++)
+			{
+				pool=newPool(1);
+				pool->next=NULL;
+				pool->survivors = 0;
+				pool=pool->next;
+			}
+			fromSpaceCurPool=pool;
+			pool=toSpacePoolList;
+			while(pool)
+			{
+				pool=pool->next;
+			}
+			for( i=0;i<1;i++)
+			{
+				pool=newPool(1);
+				pool->next=NULL;
+				pool->survivors = 0;
+				pool=pool->next;
+			}
+    	}
+    	goto methodOneForAllocation;
+    }
+    return NULL;
 }
 
 
@@ -286,10 +321,12 @@ struct GGGGC_Descriptor *ggggc_allocateDescriptorDescriptor(ggc_size_t size)
 
     /* allocate the descriptor descriptor */
     ret = (struct GGGGC_Descriptor *) ggggc_malloc(&tmpDescriptor);
-
+	
     /* make it correct */
     ret->size = size;
     ret->pointers[0] = GGGGC_DESCRIPTOR_DESCRIPTION;
+	printf("malloc 1 is %zx and size is %zx\n",ret,ret->size);
+
 
     /* put it in the list */
     ggggc_descriptorDescriptors[size] = ret;

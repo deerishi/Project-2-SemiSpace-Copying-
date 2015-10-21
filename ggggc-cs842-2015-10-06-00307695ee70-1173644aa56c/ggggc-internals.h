@@ -28,6 +28,10 @@ extern "C" {
 /* run a collection */
 void ggggc_collect();
 
+void ggggc_copy();
+
+void  *ggggc_forward();
+
 /* the pools are thread-local */
 extern struct GGGGC_Pool *ggggc_poolList;
 

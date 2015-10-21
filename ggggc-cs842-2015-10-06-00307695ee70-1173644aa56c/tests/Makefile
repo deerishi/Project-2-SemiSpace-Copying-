@@ -14,31 +14,36 @@ BTGGGGCOBJS=binary_trees_ggggc_td.o
 
 BADLLLOBJS=badlll.o
 
+TESTDLLOBJS=project2-test.o
+
 REMEMBEROBJS=remember.o
 
 GCBENCHOBJS=gc_bench/GCBench.o
 
 GGGGCBENCHOBJS=gc_bench/GCBench.ggggc.o
 
-all: bt btgc btggggc badlll gcbench ggggcbench
+all: bt btgc btggggc badlll gcbench ggggcbench testdll
 
 bt: $(BTOBJS)
 	$(LD) $(CFLAGS) $(LDFLAGS) $(BTOBJS) $(LIBS) -o bt
 
 btgc: $(BTGCOBJS)
-	$(LD) $(CFLAGS) $(LDFLAGS) $(BTGCOBJS) $(GC_LIBS) $(LIBS) -o btgc
+	$(LD) $(CFLAGS) $(LDFLAGS) $(BTGCOBJS)  $(LIBS) -o btgc # GC_LIBS WAS BEFORE LIBS
 
 btggggc: $(BTGGGGCOBJS)
 	$(LD) $(CFLAGS) $(LDFLAGS) $(BTGGGGCOBJS) $(GGGGC_LIBS) $(LIBS) -o btggggc
 
 badlll: $(BADLLLOBJS)
-	$(LD) $(CFLAGS) $(LDFLAGS) $(BADLLLOBJS) $(GGGGC_LIBS) $(LIBS) -o badlll
+	$(LD) $(CFLAGS) $(LDFLAGS) $(BADLLLOBJS) $(GGGGC_LIBS)  $(LIBS) -w -o badlll
 
+testdll: $(TESTDLLOBJS)
+	$(LD) $(CFLAGS) $(LDFLAGS) $(TESTDLLOBJS) $(GGGGC_LIBS)  $(LIBS) -w -o project2-test
+	
 remember: $(REMEMBEROBJS)
 	$(LD) $(CFLAGS) $(LDFLAGS) $(REMEMBEROBJS) $(GGGGC_LIBS) $(LIBS) -o remember
 
 gcbench: $(GCBENCHOBJS)
-	$(LD) $(CFLAGS) $(LDFLAGS) $(GCBENCHOBJS) $(GC_LIBS) $(LIBS) -o gcbench
+	$(LD) $(CFLAGS) $(LDFLAGS) $(GCBENCHOBJS)  $(LIBS) -o gcbench # GC_LIBS WAS BEFORE LIBS
 
 ggggcbench: $(GGGGCBENCHOBJS)
 	$(LD) $(CFLAGS) $(LDFLAGS) $(GGGGCBENCHOBJS) $(GGGGC_LIBS) $(LIBS) -o ggggcbench
@@ -56,3 +61,4 @@ clean:
 	rm -f $(REMEMBEROBJS) remember
 	rm -f $(GCBENCHOBJS) gcbench
 	rm -f $(GGGGCBENCHOBJS) ggggcbench
+	rm -f $(TESTDLLOBJS) project2-test

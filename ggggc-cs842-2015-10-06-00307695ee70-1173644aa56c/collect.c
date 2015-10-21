@@ -28,17 +28,194 @@
 extern "C" {
 #endif
 
+#define MAXSIZE 1024
+struct CopyList
+{
+	void **list;
+	ggc_size_t numPointers;
+	struct CopyList *next,*prev;
+};
+
+static struct CopyList LIST;
+
+#define CopyListInit()do{\
+\
+	if(LIST.list==NULL)\
+	{\
+		LIST.list=malloc(MAXSIZE * sizeof(void *));\
+		if(LIST.list == NULL )\
+		{\
+			perror("malloc");\
+			abort();\
+		}\
+	}\
+	copyList=&LIST;\
+	copyList->numPointers=0;\
+	copyList->next=NULL;\
+	copyList->prev=NULL;\
+}while(0);
+
+#define NewList()do{\
+\
+	struct CopyList *LIST2=malloc(sizeof(struct CopyList));\
+	if( LIST2 == NULL )\
+	{\
+		perror("malloc");\
+		abort();\
+	}\
+	LIST2->list=malloc(MAXSIZE * sizeof(void *));\
+	if(LIST.list == NULL )\
+	{\
+		perror("malloc");\
+		abort();\
+	}\
+	LIST2->numPointers=0;\
+	copyList->prev=copyList;\
+	copyList->next=LIST2;\
+	copyList=copyList->next;\
+}while(0);
+
+
+#define AddToCopyList(ptr) do{\
+\
+	if( copyList->numPointers >= MAXSIZE )\
+	{\
+		NewList();\
+	}\
+	copyList->list[copyList->numPointers++]=ptr;\
+}while(0);
+	
+	
+#define CopyListPop(ptr) do{\
+	ptr=(void **)copyList->list[--copyList->numPointers];\
+	if(copyList->numPointers == 0 && copyList->prev)\
+	{\
+		copyList=copyList->prev;\
+	}\
+}while(0);
+
+
+
+void ggggc_copy(void **location)
+{
+	 struct GGGGC_Header *fromLoc=( struct GGGGC_Header *)*location;
+	if( fromLoc != NULL )
+	{
+		*location=ggggc_forward(fromLoc);
+	}
+
+}
+
+
+struct CopyList *copyList;
+
+void  *ggggc_forward(struct GGGGC_Header * obj)
+{
+
+	CopyListInit();
+	//Checking if the object was already forwarded
+	if( obj->forward != NULL )
+	{
+		return obj->forward;
+	}
+	
+	//Now we copy the object from FromSpace to ToSpace
+	struct GGGGC_Pool *copyToPool=toSpaceCurPool;
+	struct GGGGC_Header *objInToPool;
+	while(copyToPool)
+	{
+		if( copyToPool->end - copyToPool->free >= obj->descriptor__ptr->size )
+		{
+			memcpy(copyToPool->free,obj,obj->descriptor__ptr->size);
+			objInToPool=(struct GGGGC_Header *)copyToPool->free;
+			objInToPool->forward=NULL; //We make the user ptr NUll here so that we dont mark this as the forwarded object in the next GC cyle.
+			obj->forward= copyToPool->free;
+			copyToPool->free=copyToPool->free + obj->descriptor__ptr->size;
+			//Now we have to add this copied object to  the copy list
+			AddToCopyList(objInToPool);
+			return objInToPool;
+		}
+		else
+		{	
+			copyToPool=copyToPool->next;
+			toSpaceCurPool=copyToPool;
+		}
+	}
+
+	//Implement the Else condition
+	
+}
+		
+	
+	
+
+
 /* run a collection */
 void ggggc_collect()
 {
     /* FILLME */
+    copyList=NULL;
+    CopyListInit();
+    struct GGGGC_PointerStack *curPointer=ggggc_pointerStack;
+    struct GGGGC_Pool *copyToPool,*copyFromPool=toSpacePoolList;
+    ggc_size_t i;
+    
+    
+    //First the references for the roots are changed
+    for(curPointer=ggggc_pointerStack;curPointer!=NULL;curPointer=curPointer->next)
+    {
+    	for(i=0;i<curPointer->size;i++)
+    	{
+    		
+    		ggggc_copy(curPointer->pointers[i]);
+    	}
+    }
+    
+    //Now we pop out the stack made for the object references 
+    while(copyList->numPointers)
+    {
+    	
+      	void ** ptr;
+      	CopyListPop(ptr);
+      	struct GGGGC_Header *obj=(struct GGGGC_Header *)*ptr;
+      	
+      	//Do the copying operation for the object references
+      	
+      	ggc_size_t i,pointerMap;
+		if(obj->descriptor__ptr->pointers[0] & 1 )
+		{
+			//Means that the descriptor containc pointers 
+			void **obj2=(void **)obj;
+			pointerMap=obj->descriptor__ptr->pointers[0];
+			for(i=0;i<obj->descriptor__ptr->size;i++)
+			{
+				if(pointerMap & 1)
+				{
+					ggggc_copy(&obj2[i]);
+				}
+				pointerMap=pointerMap/2;
+			}
+		}
+	}
+	
+	//Swap the frome space and to space 
+	struct GGGGC_Pool *temp;
+	temp=toSpacePoolList;
+	toSpacePoolList=fromSpacePoolList;
+	fromSpacePoolList=temp;
+	fromSpaceCurPool=toSpaceCurPool;
+      	
 }
 
 /* explicitly yield to the collector */
 int ggggc_yield()
 {
     /* FILLME */
-    ggggc_collect();
+     struct GGGGC_Pool *pool=fromSpaceCurPool;
+    if(pool==NULL)
+    {
+    	ggggc_collect();
+    }
     return 0;
 }
 

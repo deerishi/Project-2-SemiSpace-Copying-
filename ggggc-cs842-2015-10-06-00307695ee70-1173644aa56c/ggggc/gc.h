@@ -76,6 +76,7 @@ struct GGGGC_Pool {
 /* GC header (this shape must be shared by all GC'd objects) */
 struct GGGGC_Header {
     struct GGGGC_Descriptor *descriptor__ptr;
+    ggc_size_t *forward;
 };
 
 /* GGGGC descriptors are GC objects that describe the shape of other GC objects */
