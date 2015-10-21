@@ -99,9 +99,10 @@ static struct CopyList LIST;
 void ggggc_copy(void **location)
 {
 	 struct GGGGC_Header *fromLoc= ( struct GGGGC_Header *)*location;
-	 printf("\tfromloc is %zx \n",fromLoc);
+	 printf("\tfromloc is %zx  \n",fromLoc);
 	if( fromLoc != NULL )
 	{
+	    printf("\tfromloc des is %zx\n",fromLoc->descriptor__ptr);
 		*location=ggggc_forward(fromLoc);
 	}
 
@@ -131,9 +132,10 @@ void  *ggggc_forward(struct GGGGC_Header * obj)
 			memcpy(copyToPool->free,obj,obj->descriptor__ptr->size);
 			objInToPool=(struct GGGGC_Header *)copyToPool->free;
 			objInToPool->descriptor__ptr=obj->descriptor__ptr;
-			objInToPool->forward=NULL; //We make the user ptr NUll here so that we dont mark this as the forwarded object in the next GC cyle.
+			obj->forward=objInToPool; //We make the user ptr NUll here so that we dont mark this as the forwarded object in the next GC cyle.
+			objInToPool->forward=NULL;
 			printf("earliar object was %zx , now it is %zx \n",obj,objInToPool);
-			printf("earliar object-des was %zx , now it is %zx \n",obj->descriptor__ptr,objInToPool->descriptor__ptr);
+			printf("earliar object-des was %zx , now it is %zx \n",obj->descriptor__ptr,objInToPool->descriptor__ptr->header);
 			printf("earliar object-des-size was %zx , now it is %zx \n",obj->descriptor__ptr->size,objInToPool->descriptor__ptr->size);
 			objInToPool->forward= copyToPool->free;
 			copyToPool->free=copyToPool->free + obj->descriptor__ptr->size;
@@ -184,6 +186,7 @@ void ggggc_collect()
     {
     	for(i=0;i<curPointer->size;i++)
     	{
+    	    void **t=(void **)curPointer->pointers[i];
     		printf("\n\tearliar curPointer->pointers[%zx] was %zx  \n",i,curPointer->pointers[i]);
     		ggggc_copy(curPointer->pointers[i]);
     		printf("\n\tnow curPointer->pointers[%zx] was %zx  \n",i,curPointer->pointers[i]);
@@ -229,7 +232,7 @@ int ggggc_yield()
         printf("in yield \n");
      struct GGGGC_Pool *pool=fromSpaceCurPool;
      fc++;
-     if(fc>3) ggggc_collect();
+     if(fc>5) ggggc_collect();
     if(pool==NULL)
     {
     	ggggc_collect();
