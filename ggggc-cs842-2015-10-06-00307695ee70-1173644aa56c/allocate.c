@@ -168,10 +168,12 @@ void ggggc_freeGeneration(struct GGGGC_Pool *pool)
 
 /* allocate an object  By SemSpace Copying*/
 struct GGGGC_Pool *fromSpacePoolList=NULL,*fromSpaceCurPool=NULL,*toSpacePoolList=NULL,*toSpaceCurPool=NULL; 
+//fromSpacePoolList->free=NULL;
+//toSpacePoolList->free=NULL;
 void *ggggc_malloc(struct GGGGC_Descriptor *descriptor)
 {
 
-	//printf("in malloc malloc  descriptor is %zx and size is %zx\n",descriptor,descriptor->size);
+	printf("in  malloc  descriptor is %zx and size is %zx n its des is %zx\n",descriptor,descriptor->size,descriptor->header);
 
 	
     /* FILLME */
@@ -206,19 +208,27 @@ void *ggggc_malloc(struct GGGGC_Descriptor *descriptor)
 		}
     }
     struct GGGGC_Header *obj=NULL;
-    //Now allocate in the FromSpace if pool is available
-    pool=fromSpaceCurPool; 
+    //Now allocate in the FromSpace if pool is available 
+    
+    // CORRECTION , ALLOCATE IN THE TO SPACE
+   // pool=fromSpaceCurPool; 
+    pool=toSpacePoolList;
+    
     ggc_size_t counter=0;
 methodOneForAllocation:
     if(pool!=NULL)
     {
+    		printf("in malloc free pool is %zx and toSpace is %zx \n",fromSpaceCurPool->free,toSpacePoolList->free);
        	if((pool->end - pool->free) >= descriptor->size)
     	{
+    		printf("pool free is %zx\n",pool->free);
     		obj=(struct GGGGC_Header *)pool->free;
     		obj->descriptor__ptr=descriptor;
     		obj->forward=NULL; //Will be used later for copying references
     		pool->free=pool->free + descriptor->size;
     		memset(obj+1,0,descriptor->size *sizeof(ggc_size_t) -sizeof(struct GGGGC_Header *));
+    		//printf("returning %zx with size = %zx \n",obj,obj->descriptor__ptr->size);
+    		printf("malloc obj is %zx and descriptor size is %zx and des  is %zx  and its dex points to %zx\n",obj,obj->descriptor__ptr->size,obj->descriptor__ptr,obj->descriptor__ptr->header.descriptor__ptr);
     		return obj;
     	}
     	else
@@ -320,6 +330,7 @@ struct GGGGC_Descriptor *ggggc_allocateDescriptorDescriptor(ggc_size_t size)
     tmpDescriptor.pointers[0] = GGGGC_DESCRIPTOR_DESCRIPTION;
 
     /* allocate the descriptor descriptor */
+    printf("calling first malloc \n");
     ret = (struct GGGGC_Descriptor *) ggggc_malloc(&tmpDescriptor);
 	
     /* make it correct */

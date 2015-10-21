@@ -98,7 +98,8 @@ static struct CopyList LIST;
 
 void ggggc_copy(void **location)
 {
-	 struct GGGGC_Header *fromLoc=( struct GGGGC_Header *)*location;
+	 struct GGGGC_Header *fromLoc= ( struct GGGGC_Header *)*location;
+	 printf("\tfromloc is %zx \n",fromLoc);
 	if( fromLoc != NULL )
 	{
 		*location=ggggc_forward(fromLoc);
@@ -111,9 +112,10 @@ struct CopyList *copyList;
 
 void  *ggggc_forward(struct GGGGC_Header * obj)
 {
-
 	CopyListInit();
+	
 	//Checking if the object was already forwarded
+	printf("obj->forward is %zx \n",obj->forward);
 	if( obj->forward != NULL )
 	{
 		return obj->forward;
@@ -128,9 +130,14 @@ void  *ggggc_forward(struct GGGGC_Header * obj)
 		{
 			memcpy(copyToPool->free,obj,obj->descriptor__ptr->size);
 			objInToPool=(struct GGGGC_Header *)copyToPool->free;
+			objInToPool->descriptor__ptr=obj->descriptor__ptr;
 			objInToPool->forward=NULL; //We make the user ptr NUll here so that we dont mark this as the forwarded object in the next GC cyle.
-			obj->forward= copyToPool->free;
+			printf("earliar object was %zx , now it is %zx \n",obj,objInToPool);
+			printf("earliar object-des was %zx , now it is %zx \n",obj->descriptor__ptr,objInToPool->descriptor__ptr);
+			printf("earliar object-des-size was %zx , now it is %zx \n",obj->descriptor__ptr->size,objInToPool->descriptor__ptr->size);
+			objInToPool->forward= copyToPool->free;
 			copyToPool->free=copyToPool->free + obj->descriptor__ptr->size;
+			memset(obj+1,0,obj->descriptor__ptr->size *sizeof(ggc_size_t) -sizeof(struct GGGGC_Header *));
 			//Now we have to add this copied object to  the copy list
 			AddToCopyList(objInToPool);
 			return objInToPool;
@@ -154,6 +161,17 @@ void  *ggggc_forward(struct GGGGC_Header * obj)
 void ggggc_collect()
 {
     /* FILLME */
+    //Swap the frome space and to space 
+	struct GGGGC_Pool *temp;
+	temp=toSpacePoolList;
+	toSpacePoolList=fromSpacePoolList;
+	fromSpacePoolList=temp;
+	fromSpaceCurPool=toSpaceCurPool;
+	toSpaceCurPool=toSpacePoolList;
+    
+    
+    
+    printf("in collect \n");
     copyList=NULL;
     CopyListInit();
     struct GGGGC_PointerStack *curPointer=ggggc_pointerStack;
@@ -166,8 +184,9 @@ void ggggc_collect()
     {
     	for(i=0;i<curPointer->size;i++)
     	{
-    		
+    		printf("\n\tearliar curPointer->pointers[%zx] was %zx  \n",i,curPointer->pointers[i]);
     		ggggc_copy(curPointer->pointers[i]);
+    		printf("\n\tnow curPointer->pointers[%zx] was %zx  \n",i,curPointer->pointers[i]);
     	}
     }
     
@@ -198,20 +217,19 @@ void ggggc_collect()
 		}
 	}
 	
-	//Swap the frome space and to space 
-	struct GGGGC_Pool *temp;
-	temp=toSpacePoolList;
-	toSpacePoolList=fromSpacePoolList;
-	fromSpacePoolList=temp;
-	fromSpaceCurPool=toSpaceCurPool;
+	
       	
 }
 
 /* explicitly yield to the collector */
+static ggc_size_t fc=0;
 int ggggc_yield()
 {
     /* FILLME */
+        printf("in yield \n");
      struct GGGGC_Pool *pool=fromSpaceCurPool;
+     fc++;
+     if(fc>3) ggggc_collect();
     if(pool==NULL)
     {
     	ggggc_collect();
