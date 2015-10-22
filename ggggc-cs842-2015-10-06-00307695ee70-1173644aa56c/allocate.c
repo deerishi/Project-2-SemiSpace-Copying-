@@ -245,6 +245,7 @@ methodOneForAllocation:
     	if(counter<2) 
     	{
 			GGC_YIELD();
+			pool=toSpaceCurPool;
 		}
 		else
 		{
@@ -269,6 +270,7 @@ methodOneForAllocation:
 				pool=pool->next;
 			}
 			pool=toSpaceCurPool;
+			counter=0; //reset the counter
     	}
     	goto methodOneForAllocation;
     }

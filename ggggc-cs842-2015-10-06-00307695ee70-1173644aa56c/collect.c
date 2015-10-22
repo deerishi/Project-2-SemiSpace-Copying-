@@ -152,7 +152,7 @@ void  *ggggc_forward(struct GGGGC_Header * obj)
 	}
 
 	//Implement the Else condition
-	
+	//NO need for else condition , we will not run out of the space
 }
 		
 	
@@ -225,7 +225,7 @@ void ggggc_collect()
 	struct GGGGC_Pool *pool=fromSpacePoolList;
 	while(pool)
 	{
-		memset(pool,0,GGGGC_POOL_BYTES);
+		memset(pool->start,0,(pool->end - pool->start) * sizeof(ggc_size_t));
 		pool=pool->next;
 	}
 	
@@ -238,7 +238,7 @@ int ggggc_yield()
 {
     /* FILLME */
       //printf("in yield \n");
-     struct GGGGC_Pool *pool=fromSpaceCurPool;
+     struct GGGGC_Pool *pool=toSpaceCurPool; // check if the curent pool is null or not
      fc++;
   //  if(fc>5) ggggc_collect();
     if(pool==NULL)
