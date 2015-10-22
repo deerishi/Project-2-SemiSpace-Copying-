@@ -27,7 +27,7 @@ LinkedList makeList(int counter)
     ob3 = ob2;
     ob5=NULL;
 
-    for (i = 1; i < 3; i++) {
+    for (i = 1; i < 11; i++) {
         ob4 = GGC_NEW(LinkedList);
         //printf("here obj is %zx\n",ob4);
         GGC_WD(ob4, val, i);

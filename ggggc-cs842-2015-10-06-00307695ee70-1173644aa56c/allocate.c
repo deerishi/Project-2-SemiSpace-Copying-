@@ -173,7 +173,7 @@ struct GGGGC_Pool *fromSpacePoolList=NULL,*fromSpaceCurPool=NULL,*toSpacePoolLis
 void *ggggc_malloc(struct GGGGC_Descriptor *descriptor)
 {
 
-	printf("in  malloc  descriptor is %zx and size is %zx n its des is %zx\n",descriptor,descriptor->size,descriptor->header);
+	//printf("in  malloc  descriptor is %zx and size is %zx n its des is %zx\n",descriptor,descriptor->size,descriptor->header);
 
 	
     /* FILLME */
@@ -218,6 +218,7 @@ void *ggggc_malloc(struct GGGGC_Descriptor *descriptor)
 methodOneForAllocation:
     if(pool!=NULL)
     {
+    	counter++;
     		//printf("in malloc free pool is %zx and toSpace is %zx \n",fromSpaceCurPool->free,toSpacePoolList->free);
        	if((pool->end - pool->free) >= descriptor->size)
     	{
@@ -228,7 +229,7 @@ methodOneForAllocation:
     		pool->free=pool->free + descriptor->size;
     		memset(obj+1,0,descriptor->size *sizeof(ggc_size_t) -sizeof(struct GGGGC_Header *));
 
-    		printf("malloc obj is %zx and descriptor size is %zx and des  is %zx  and its dex points to %zx\n",obj,obj->descriptor__ptr->size,obj->descriptor__ptr,obj->descriptor__ptr->header.descriptor__ptr);
+    		//printf("malloc obj is %zx and descriptor size is %zx and des  is %zx  and its dex points to %zx\n",obj,obj->descriptor__ptr->size,obj->descriptor__ptr,obj->descriptor__ptr->header.descriptor__ptr);
     		return obj;
     	}
     	else
@@ -236,12 +237,12 @@ methodOneForAllocation:
     		pool=pool->next;
     		goto methodOneForAllocation;
     	}
-    	counter++;
+    	
     }
     else
     {
     	/*Significance of counter comes in the fact that we have used malloc twice and even after tring yield we cound not allocate */
-    	if(counter>=2) 
+    	if(counter<2) 
     	{
 			GGC_YIELD();
 		}
